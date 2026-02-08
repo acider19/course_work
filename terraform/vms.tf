@@ -11,9 +11,9 @@ resource "yandex_compute_instance" "bastion" {
   zone        = "ru-central1-a" #зона ВМ должна совпадать с зоной subnet!!!
 
   resources {
-    cores         = 2
-    memory        = 1
-    core_fraction = 20
+    cores         = var.comp_res.cores
+    memory        = var.comp_res.memory
+    core_fraction = var.comp_res.core_fraction
   }
 
   boot_disk {
@@ -32,9 +32,9 @@ resource "yandex_compute_instance" "bastion" {
   scheduling_policy { preemptible = true }
 
   network_interface {
-    subnet_id          = yandex_vpc_subnet.develop_a.id #зона ВМ должна совпадать с зоной subnet!!!
+    subnet_id          = yandex_vpc_subnet.cw_a.id #зона ВМ должна совпадать с зоной subnet!!!
     nat                = true
-    security_group_ids = [yandex_vpc_security_group.LAN.id, yandex_vpc_security_group.bastion.id]
+    security_group_ids = [yandex_vpc_security_group.LAN.id, yandex_vpc_security_group.bastion_sg.id]
   }
 }
 
@@ -47,9 +47,9 @@ resource "yandex_compute_instance" "web_a" {
 
 
   resources {
-    cores         = 2
-    memory        = 1
-    core_fraction = 20
+    cores         = var.comp_res.cores
+    memory        = var.comp_res.memory
+    core_fraction = var.comp_res.core_fraction
   }
 
   boot_disk {
@@ -68,7 +68,7 @@ resource "yandex_compute_instance" "web_a" {
   scheduling_policy { preemptible = true }
 
   network_interface {
-    subnet_id          = yandex_vpc_subnet.develop_a.id
+    subnet_id          = yandex_vpc_subnet.cw_a.id
     nat                = false
     security_group_ids = [yandex_vpc_security_group.LAN.id, yandex_vpc_security_group.web_sg.id]
   }
@@ -81,9 +81,9 @@ resource "yandex_compute_instance" "web_b" {
   zone        = "ru-central1-b" #зона ВМ должна совпадать с зоной subnet!!!
 
   resources {
-    cores         = var.test.cores
-    memory        = 1
-    core_fraction = 20
+    cores         = var.comp_res.cores
+    memory        = var.comp_res.memory
+    core_fraction = var.comp_res.core_fraction
   }
 
   boot_disk {
@@ -102,22 +102,23 @@ resource "yandex_compute_instance" "web_b" {
   scheduling_policy { preemptible = true }
 
   network_interface {
-    subnet_id          = yandex_vpc_subnet.develop_b.id
+    subnet_id          = yandex_vpc_subnet.cw_b.id
     nat                = false
     security_group_ids = [yandex_vpc_security_group.LAN.id, yandex_vpc_security_group.web_sg.id]
 
   }
 }
 
-resource "yandex_compute_instance" "wrong_b" {
-  name        = "wrong-hostname" #Имя ВМ в облачной консоли
+resource "yandex_compute_instance" "prometheus" {
+  name        = "prometheus" #Имя ВМ в облачной консоли
+  hostname    = "prometheus"
   platform_id = "standard-v3"
   zone        = "ru-central1-b" #зона ВМ должна совпадать с зоной subnet!!!
 
   resources {
-    cores         = var.test.cores
-    memory        = 1
-    core_fraction = 20
+    cores         = var.comp_res.cores
+    memory        = var.comp_res.memory + 1
+    core_fraction = var.comp_res.core_fraction
   }
 
   boot_disk {
@@ -136,23 +137,23 @@ resource "yandex_compute_instance" "wrong_b" {
   scheduling_policy { preemptible = true }
 
   network_interface {
-    subnet_id          = yandex_vpc_subnet.develop_b.id
+    subnet_id          = yandex_vpc_subnet.cw_b.id
     nat                = false
-    security_group_ids = [yandex_vpc_security_group.LAN.id, yandex_vpc_security_group.web_sg.id]
+    security_group_ids = [yandex_vpc_security_group.LAN.id]
 
   }
 }
 
-resource "yandex_compute_instance" "db" {
-  name        = "db" #Имя ВМ в облачной консоли
-  hostname    = "db"
+resource "yandex_compute_instance" "grafana" {
+  name        = "grafana" #Имя ВМ в облачной консоли
+  hostname    = "grafana"
   platform_id = "standard-v3"
   zone        = "ru-central1-b" #зона ВМ должна совпадать с зоной subnet!!!
 
   resources {
-    cores         = var.test.cores
-    memory        = 1
-    core_fraction = 20
+    cores         = var.comp_res.cores
+    memory        = var.comp_res.memory + 1
+    core_fraction = var.comp_res.core_fraction
   }
 
   boot_disk {
@@ -171,24 +172,30 @@ resource "yandex_compute_instance" "db" {
   scheduling_policy { preemptible = true }
 
   network_interface {
-    subnet_id          = yandex_vpc_subnet.develop_b.id
+    subnet_id          = yandex_vpc_subnet.cw_b.id
     nat                = false
-    security_group_ids = [yandex_vpc_security_group.LAN.id, yandex_vpc_security_group.web_sg.id]
+    security_group_ids = [yandex_vpc_security_group.LAN.id]
 
   }
 }
+
+# сюда еще виртуалки
 
 resource "local_file" "inventory" {
   content  = <<-XYZ
   [bastion]
   ${yandex_compute_instance.bastion.network_interface.0.nat_ip_address}
+  ${yandex_compute_instance.bastion.network_interface.0.ip_address}
 
   [webservers]
   ${yandex_compute_instance.web_a.network_interface.0.ip_address}
   ${yandex_compute_instance.web_b.network_interface.0.ip_address}
 
-  [db]
-  ${yandex_compute_instance.db.network_interface.0.ip_address}
+  [prometheus]
+  ${yandex_compute_instance.prometheus.network_interface.0.ip_address}
+
+  [grafana]
+  ${yandex_compute_instance.grafana.network_interface.0.ip_address}
 
   [webservers:vars]
   ansible_ssh_common_args='-o ProxyCommand="ssh -p 22 -W %h:%p -q user@${yandex_compute_instance.bastion.network_interface.0.nat_ip_address}"'
