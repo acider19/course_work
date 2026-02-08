@@ -1,0 +1,16 @@
+---
+- name: test nginx install
+  gather_facts: false
+  hosts: webservers
+  vars:
+    ansible_ssh_user: user
+  become: yes
+  tasks:
+    - name: Выполнить команду nginx -v
+      ansible.builtin.command: nginx -v
+      register: nginx_version
+      ignore_errors: yes
+
+    - name: Вывести результат
+      ansible.builtin.debug:
+        msg: "{{ nginx_version.stderr }}"

@@ -1,0 +1,10 @@
+#cloud-config
+users:
+  - name: junk
+    groups: sudo
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN8tUE4m5pdEwYhV8VRUJdQjvjkvydoJ20cgvkOGeLCM master@JunkMacBook-Air-M3.local
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICCy0fYsPMMhdG7yTrLLpVcQGnTHgKyALhwp6D5nqaY/ junk@Ubuntu-for-Docker
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFQQelNWbck28Itgsp/1U7qedIYxJSIAu4ZTz24dVa/3 master@JunkMacBook-Pro.local
