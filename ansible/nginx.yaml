@@ -3,7 +3,7 @@
   gather_facts: false
   hosts: webservers
   vars:
-    ansible_ssh_user: user
+    ansible_ssh_user: student
   become: yes
 
   tasks:
