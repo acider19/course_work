@@ -1,0 +1,31 @@
+---
+- name: Check nginx install
+  gather_facts: true
+  hosts: all
+  vars:
+    ansible_ssh_user: student
+  become: yes
+  
+  tasks:
+    - name: Run nginx -v
+      ansible.builtin.command: nginx -v
+      register: nginx_version
+      ignore_errors: yes
+
+    - name: Print result
+      ansible.builtin.debug:
+        msg: "{{ nginx_version.stderr }}"
+
+    - name: Check if index.html exists
+      ansible.builtin.stat:
+        path: /var/www/html/index.html
+      register: index_file
+    
+    - name: Print deployment status
+      ansible.builtin.debug:
+        msg: "✅ Nginx installed and index.html deployed on {{ inventory_hostname }}"
+      when: index_file.stat.exists
+    
+    - name: Display server hostname
+      ansible.builtin.debug:
+        msg: "Server hostname: {{ ansible_hostname }}"

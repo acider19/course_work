@@ -1,7 +1,7 @@
 ---
-- name: test
+- name: Install nginx on webservers
   gather_facts: false
-  hosts: webservers
+  hosts: all
   vars:
     ansible_ssh_user: student
   become: yes
@@ -12,10 +12,36 @@
       name: "nginx"
       state: "latest"
       update_cache: true
+
+  - name: "Deploy index.html"
+    ansible.builtin.copy:
+      content: |
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Курсовая работа</title>
+        </head>
+        <body>
+            <h1>Курсовая работа. Группа FOPS-41. Муравский Артем.</h1>
+        </body>
+        </html>
+      dest: /var/www/html/index.html
+      owner: www-data
+      group: www-data
+      mode: '0644'
+      backup: yes
+
+  - name: "Remove default nginx page"
+    ansible.builtin.file:
+      path: /var/www/html/index.nginx-debian.html
+      state: absent      
+
   - name: "Start a nginx with systemd"
     systemd:
       name: "nginx"
       state: started
+
   - name: "Enable nginx service"
     systemd:
       name: "nginx.service"

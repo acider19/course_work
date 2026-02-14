@@ -56,7 +56,6 @@ resource "yandex_vpc_security_group" "bastion_sg" {
     from_port      = 0
     to_port        = 65535
   }
-
 }
 
 resource "yandex_vpc_security_group" "LAN" {
@@ -76,7 +75,6 @@ resource "yandex_vpc_security_group" "LAN" {
     from_port      = 0
     to_port        = 65535
   }
-
 }
 
 resource "yandex_vpc_security_group" "web_sg" {
@@ -96,5 +94,22 @@ resource "yandex_vpc_security_group" "web_sg" {
     port           = 80
     v4_cidr_blocks = ["0.0.0.0/0"]
   }
+}
 
+resource "yandex_vpc_security_group" "grafana_sg" {
+  name       = "bastion-sg"
+  network_id = yandex_vpc_network.cw.id
+  ingress {
+    description    = "Allow 0.0.0.0/0"
+    protocol       = "TCP"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 3000
+  }
+  egress {
+    description    = "Permit ANY"
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    from_port      = 0
+    to_port        = 65535
+  }
 }
