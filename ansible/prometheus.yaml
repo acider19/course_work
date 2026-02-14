@@ -1,0 +1,42 @@
+---
+- name: Install Prometheus on Monitor Host
+  hosts: prometheus
+  become: yes
+  tasks:
+    - name: Install Docker and SDK
+      ansible.builtin.apt:
+        name: [docker.io, python3-docker]
+        state: present
+        update_cache: yes
+
+    - name: Create Prometheus Config Dir
+      ansible.builtin.file:
+        path: /opt/prometheus
+        state: directory
+
+    - name: Create prometheus.yml
+      ansible.builtin.copy:
+        dest: /opt/prometheus/prometheus.yml
+        content: |
+          global:
+            scrape_interval: 15s
+          scrape_configs:
+            - job_name: 'prometheus'
+              static_configs:
+                - targets: ['localhost:9090']
+            - job_name: 'web_nodes'
+              static_configs:
+                # Prometheus будет забирать метрики с экспортеров на веб-серверах
+                - targets: {{ groups['webservers'] | map('regex_replace', '$', ':9100') | list + groups['webservers'] | map('regex_replace', '$', ':4040') | list }}
+        mode: '0644'
+
+    - name: Run Prometheus Container
+      community.docker.docker_container:
+        name: prometheus
+        image: prom/prometheus:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "9090:9090"
+        volumes:
+          - /opt/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml

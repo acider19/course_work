@@ -1,0 +1,36 @@
+- name: Install Exporters on Web Servers
+  hosts: webservers
+  become: yes
+
+  tasks:
+
+    - name: Install Docker and SDK
+      ansible.builtin.apt:
+        name: [docker.io, python3-docker]
+        state: present
+        update_cache: yes
+
+    # Node Exporter (Порт 9100)
+    - name: Run Node Exporter
+      community.docker.docker_container:
+        name: node-exporter
+        image: prom/node-exporter:latest
+        state: started
+        restart_policy: always
+        published_ports: ["9100:9100"]
+
+    # Nginx Log Exporter (Порт 4040)
+    # Внимание: требует наличия доступа к логам nginx на хосте
+    - name: Run Nginx Log Exporter
+      community.docker.docker_container:
+        name: nginx-log-exporter
+        image: quay.io/martinhelmich/prometheus-nginxlog-exporter:latest
+        state: started
+        restart_policy: always
+        published_ports: ["4040:4040"]
+        volumes:
+          - /var/log/nginx:/var/log/nginx:ro
+        command: 
+          - "-format"
+          - "$remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\""
+          - "/var/log/nginx/access.log"

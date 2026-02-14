@@ -173,8 +173,8 @@ resource "yandex_compute_instance" "grafana" {
 
   network_interface {
     subnet_id          = yandex_vpc_subnet.cw_b.id
-    nat                = false
-    security_group_ids = [yandex_vpc_security_group.LAN.id]
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.LAN.id, yandex_vpc_security_group.grafana_sg.id]
 
   }
 }
@@ -197,7 +197,8 @@ resource "local_file" "inventory" {
   [grafana]
   ${yandex_compute_instance.grafana.network_interface.0.ip_address}
 
-  [webservers:vars]
+  [all:vars]
+  ansible_user=student
   ansible_ssh_common_args='-o ProxyCommand="ssh -p 22 -W %h:%p -q student@${yandex_compute_instance.bastion.network_interface.0.nat_ip_address}"'
   XYZ
   filename = "./hosts.ini"

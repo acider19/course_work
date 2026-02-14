@@ -97,7 +97,7 @@ resource "yandex_vpc_security_group" "web_sg" {
 }
 
 resource "yandex_vpc_security_group" "grafana_sg" {
-  name       = "bastion-sg"
+  name       = "grafana-sg"
   network_id = yandex_vpc_network.cw.id
   ingress {
     description    = "Allow 0.0.0.0/0"

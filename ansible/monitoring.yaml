@@ -1,0 +1,109 @@
+---
+- name: Install Prometheus on Monitor Host
+  hosts: prometheus
+  become: yes
+  tasks:
+    - name: Install Docker and SDK
+      ansible.builtin.apt:
+        name: [docker.io, python3-docker]
+        state: present
+        update_cache: yes
+
+    - name: Create Prometheus Config Dir
+      ansible.builtin.file:
+        path: /opt/prometheus
+        state: directory
+
+    - name: Create prometheus.yml
+      ansible.builtin.copy:
+        dest: /opt/prometheus/prometheus.yml
+        content: |
+          global:
+            scrape_interval: 15s
+          scrape_configs:
+            - job_name: 'prometheus'
+              static_configs:
+                - targets: ['localhost:9090']
+            - job_name: 'web_nodes'
+              static_configs:
+                # Prometheus будет забирать метрики с экспортеров на веб-серверах
+                - targets: {{ groups['webservers'] | map('regex_replace', '$', ':9100') | list + groups['webservers'] | map('regex_replace', '$', ':4040') | list }}
+        mode: '0644'
+
+    - name: Run Prometheus Container
+      community.docker.docker_container:
+        name: prometheus
+        image: prom/prometheus:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "9090:9090"
+        volumes:
+          - /opt/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+- name: Install Grafana on Dashboard Host
+  hosts: grafana
+  become: yes
+  vars:
+    # IP вашего сервера с Prometheus (возьмется из inventory)
+    prometheus_ip: "{{ groups['prometheus'][0] }}"
+    grafana_admin_password: "student"
+
+  tasks:
+    - name: Install Docker and SDK
+      ansible.builtin.apt:
+        name: [docker.io, python3-docker]
+        state: present
+        update_cache: yes
+
+    - name: Run Grafana Container
+      community.docker.docker_container:
+        name: grafana
+        image: grafana/grafana:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "3000:3000"
+        env:
+          GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+
+    - name: Show Info
+      ansible.builtin.debug:
+        msg: "В Grafana при добавлении Data Source укажите URL: http://{{ prometheus_ip }}:9090"
+
+- name: Install Exporters on Web Servers
+  hosts: webservers
+  become: yes
+
+  tasks:
+
+    - name: Install Docker and SDK
+      ansible.builtin.apt:
+        name: [docker.io, python3-docker]
+        state: present
+        update_cache: yes
+
+    # Node Exporter (Порт 9100)
+    - name: Run Node Exporter
+      community.docker.docker_container:
+        name: node-exporter
+        image: prom/node-exporter:latest
+        state: started
+        restart_policy: always
+        published_ports: ["9100:9100"]
+
+    # Nginx Log Exporter (Порт 4040)
+    # Внимание: требует наличия доступа к логам nginx на хосте
+    - name: Run Nginx Log Exporter
+      community.docker.docker_container:
+        name: nginx-log-exporter
+        image: quay.io/martinhelmich/prometheus-nginxlog-exporter:latest
+        state: started
+        restart_policy: always
+        published_ports: ["4040:4040"]
+        volumes:
+          - /var/log/nginx:/var/log/nginx:ro
+        command: 
+          - "-format"
+          - "$remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\""
+          - "/var/log/nginx/access.log"

@@ -1,101 +1,53 @@
----
-- name: Install and configure Grafana
-  gather_facts: true
+- name: Install Grafana on Dashboard Host
   hosts: grafana
   become: yes
-  
   vars:
-    grafana_version: "11.5.1"
-    grafana_port: 3000
+    # Берем IP первого хоста из группы prometheus
+    prometheus_ip: "{{ groups['prometheus'][0] }}"
     grafana_admin_password: "student"
 
   tasks:
-    # 1. Подготовка и установка Docker
-    - name: Install prerequisite packages
+    - name: Install Docker and SDK
       ansible.builtin.apt:
-        name: [apt-transport-https, ca-certificates, curl, gnupg, lsb-release, python3-docker]
+        name: [docker.io, python3-docker]
         state: present
         update_cache: yes
 
-    - name: Add Docker GPG key
-      ansible.builtin.apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
-
-    - name: Add Docker repository
-      ansible.builtin.apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"
-        state: present
-
-    - name: Install Docker Engine
-      ansible.builtin.apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-buildx-plugin
-          - docker-compose-plugin
-        state: present
-        update_cache: yes
-
-    - name: Start and enable Docker service
-      ansible.builtin.systemd:
-        name: docker
-        state: started
-        enabled: yes
-
-    # 2. Настройка прав (необязательно, но полезно)
-    - name: Add user to docker group
-      ansible.builtin.user:
-        name: "{{ ansible_user_id }}"
-        groups: docker
-        append: yes
-      when: ansible_facts['user_id'] != 'root'
-
-    # 3. Подготовка директории и конфига
-    - name: Create project directory
+    # 1. Создаем директорию для конфигов провижининга
+    - name: Create provisioning directory
       ansible.builtin.file:
-        path: /opt/grafana
+        path: /opt/grafana/provisioning/datasources
         state: directory
         mode: '0755'
 
-    - name: Create docker-compose.yml
+    # 2. Создаем конфиг DataSource (имя 'Prometheus' критично для дашбордов)
+    - name: Configure Prometheus datasource
       ansible.builtin.copy:
-        dest: /opt/grafana/docker-compose.yml
+        dest: /opt/grafana/provisioning/datasources/prometheus.yml
         content: |
-          services:
-            grafana:
-              image: grafana/grafana:{{ grafana_version }}
-              container_name: grafana
-              restart: always
-              ports:
-                - "{{ grafana_port }}:3000"
-              environment:
-                - GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}
-              volumes:
-                - grafana-data:/var/lib/grafana
-          volumes:
-            grafana-data:
+          apiVersion: 1
+          datasources:
+            - name: Prometheus
+              type: prometheus
+              url: http://{{ prometheus_ip }}:9090
+              access: proxy
+              isDefault: true
         mode: '0644'
 
-    # 4. Запуск
-    - name: Deploy Grafana with docker compose
-      community.docker.docker_compose_v2:
-        project_src: /opt/grafana
-        state: present
-        remove_orphans: yes
+    # 3. Запускаем контейнер с пробросом папки provisioning
+    - name: Run Grafana Container
+      community.docker.docker_container:
+        name: grafana
+        image: grafana/grafana:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "3000:3000"
+        env:
+          GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+        volumes:
+          - /opt/grafana/provisioning:/etc/grafana/provisioning:ro
 
-    - name: Wait for Grafana to be ready
-      ansible.builtin.uri:
-        url: "http://localhost:{{ grafana_port }}/api/health"
-        method: GET
-        status_code: 200
-      register: health_result
-      until: health_result.status == 200
-      retries: 12
-      delay: 5
-      changed_when: false
-
-    - name: Show access URL
+    - name: Show Info
       ansible.builtin.debug:
-        msg: "Grafana доступна по адресу http://{{ ansible_host | default(inventory_hostname) }}:{{ grafana_port }} (login: admin / pass: {{ grafana_admin_password }})"
+        msg: "Grafana запущена. Источник 'Prometheus' (http://{{ prometheus_ip }}:9090) добавлен автоматически."

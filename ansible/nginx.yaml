@@ -1,7 +1,7 @@
 ---
 - name: Install nginx on webservers
   gather_facts: false
-  hosts: all
+  hosts: webservers
   vars:
     ansible_ssh_user: student
   become: yes
