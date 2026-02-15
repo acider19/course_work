@@ -1,0 +1,96 @@
+- name: Install and Configure Grafana via API
+  hosts: grafana
+  become: yes
+  vars:
+    prometheus_ip: "{{ groups['prometheus'][0] }}"
+    grafana_admin_password: "student"
+    grafana_url: "http://localhost:3000"
+
+  tasks:
+    # Установка Docker
+    - name: Install Docker and Python SDK
+      ansible.builtin.apt:
+        name: [docker.io, python3-docker]
+        state: present
+        update_cache: yes
+
+    # Запускаем Grafana
+    - name: Run Grafana Container
+      community.docker.docker_container:
+        name: grafana
+        image: grafana/grafana:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "3000:3000"
+        env:
+          GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+
+    # Ждем готовности API Grafana (контейнеру нужно время на старт)
+    - name: Wait for Grafana to be ready
+      ansible.builtin.uri:
+        url: "{{ grafana_url }}/api/health"
+        status_code: 200
+      register: _result
+      until: _result.status == 200
+      retries: 15
+      delay: 5
+      become: no
+
+    # Создаем Default DataSource для Grafana через API и записываем uid в переменную ds_result.datasource.uid
+    - name: Create Prometheus Datasource
+      community.grafana.grafana_datasource:
+        name: "Prometheus"
+        ds_type: "prometheus"
+        ds_url: "http://{{ prometheus_ip }}:9090"
+        url: "{{ grafana_url }}"
+        url_username: "admin"
+        url_password: "{{ grafana_admin_password }}"
+        is_default: true
+        state: present
+      register: ds_result
+
+    # Создаем временную директорию для работы с дашбордом 15947 (NGINX Log Metrics [M])
+    - name: Create temp directory for dashboards
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: dashboards
+      register: temp_dir
+
+    # Скачиваем JSON дашборда 15947 во временную директорию
+    - name: Download dashboard JSONs
+      ansible.builtin.get_url:
+        url: "https://grafana.com/api/dashboards/15947/revisions/1/download"
+        dest: "{{ temp_dir.path }}/15947.json"
+        mode: '0644'
+
+    # Заменяем в JSON дашборда 15947 значение переменной Datasource uid (${DS_PROMETHEUS}) на значение uid Prometheus
+    - name: Replace DS_PROMETHEUS variable with actual UID
+      ansible.builtin.replace:
+        path: "{{ temp_dir.path }}/15947.json"
+        regexp: '\${DS_PROMETHEUS}'
+        replace: "{{ ds_result.datasource.uid }}"
+
+    # Импортируем дашборд 15947 в Grafana из отредактированного JSON во ыременной директории
+    - name: Import dashboards
+      community.grafana.grafana_dashboard:
+        path: "{{ temp_dir.path }}/15947.json"
+        url: "{{ grafana_url }}"
+        url_username: "admin"
+        url_password: "{{ grafana_admin_password }}"
+        state: present
+        commit_message: "Updated by Ansible"
+        overwrite: true
+
+
+    # Импортируем дашборд 1860 напрямую по ID без танцев с бубном
+    - name: Import standard dashboards
+      community.grafana.grafana_dashboard:
+        dashboard_id: 1860
+        dashboard_revision: 42
+        url: "{{ grafana_url }}"
+        url_username: "admin"
+        url_password: "{{ grafana_admin_password }}"
+        state: present
+        commit_message: "Updated by Ansible"
+        overwrite: true

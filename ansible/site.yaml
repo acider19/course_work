@@ -3,15 +3,16 @@
 
 - name: Install webservers
   import_playbook: nginx.yaml
+  tags: nginx
 
 - name: Install node and nginx exporters
   import_playbook: exporters.yaml
+  tags: exporter
 
 - name: Install prometheus
   import_playbook: prometheus.yaml
+  tags: prometheus
 
 - name: Install grafana
-  import_playbook: grafana.yaml
-
-- name: Install grafana dashboards
-  import_playbook: grafana_dashboards.yaml
+  import_playbook: grafana-full.yaml
+  tags: grafana
