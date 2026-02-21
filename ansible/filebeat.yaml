@@ -1,0 +1,43 @@
+---
+- name: Install Filebeat on Web Servers
+  hosts: webservers
+  become: yes
+  vars:
+    elasticsearch_ip: "{{ groups['elasticsearch'][0] }}"
+
+  tasks:
+    # Создание конфига для Filebeat на хосте
+    - name: Create Filebeat configuration
+      copy:
+        dest: /etc/filebeat.yml
+        mode: '0644'
+        content: |
+          filebeat.inputs:
+          - type: log
+            enabled: true
+            paths:
+              - /var/log/nginx/access.log
+              - /var/log/nginx/error.log
+          output.elasticsearch:
+            hosts: ["{{ elasticsearch_ip }}"]
+            protocol: "http" 
+          logging.level: info
+
+    # Запуск контейнера Filebeat
+    - name: Run Filebeat container
+      community.docker.docker_container:
+        name: filebeat
+        image: elastic/filebeat:8.19.11
+        state: started
+        restart_policy: always
+        user: root  # Чтобы были права на чтение логов и конфига
+        volumes:
+          # Монтируем конфиг
+          - /etc/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+          # Монтируем логи nginx
+          - /var/log/nginx:/var/log/nginx:ro
+          # Монтируем данные самого докера (опционально, для метаданных)
+          - /var/lib/docker/containers:/var/lib/docker/containers:ro
+          - /var/run/docker.sock:/var/run/docker.sock:ro
+        # Исправляем права на конфиг внутри контейнера (Filebeat строг к этому)
+        command: ["filebeat", "-e", "-strict.perms=false"]

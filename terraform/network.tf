@@ -113,3 +113,21 @@ resource "yandex_vpc_security_group" "grafana_sg" {
     to_port        = 65535
   }
 }
+
+resource "yandex_vpc_security_group" "kibana_sg" {
+  name       = "kibana-sg"
+  network_id = yandex_vpc_network.cw.id
+  ingress {
+    description    = "Allow 0.0.0.0/0"
+    protocol       = "TCP"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 5601
+  }
+  egress {
+    description    = "Permit ANY"
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    from_port      = 0
+    to_port        = 65535
+  }
+}

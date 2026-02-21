@@ -16,3 +16,15 @@
 - name: Install grafana
   import_playbook: grafana-full.yaml
   tags: grafana
+
+- name: Install elasticsearch
+  import_playbook: es.yaml
+  tags: elasticsearch
+
+- name: Install kibana
+  import_playbook: kibana.yaml
+  tags: kibana
+
+- name: Install filebeat
+  import_playbook: filebeat.yaml
+  tags: filebeat

@@ -1,0 +1,51 @@
+---
+- name: Install Elasticsearch
+  hosts: elasticsearch
+  become: yes
+  vars:
+    # Путь на сервере, где будут лежать данные
+    es_data_path: "/opt/elasticsearch/data"
+
+  tasks:
+    # Установка Docker
+    - name: Install Docker and SDK
+      ansible.builtin.apt:
+        name: [docker.io, python3-docker]
+        state: present
+        update_cache: yes
+
+    # Настройка лимитов памяти для хранения индексов
+    - name: Set vm.max_map_count
+      sysctl:
+        name: vm.max_map_count
+        value: '262144'
+        state: present
+        reload: yes
+
+    # Создание директории для данных
+    - name: Create data directory
+      file:
+        path: "{{ es_data_path }}"
+        state: directory
+        owner: 1000 # ID пользователя elasticsearch внутри контейнера
+        group: 1000
+        mode: '0775'
+
+    # Запуск контейнера Elasticsearch с вольюмом для персистентного хранения данных
+    - name: Run Elasticsearch container
+      community.docker.docker_container:
+        name: elasticsearch
+        image: elastic/elasticsearch:8.19.11
+        state: started
+        restart_policy: always
+        published_ports:
+          - "9200:9200"
+        volumes:
+          - "{{ es_data_path }}:/usr/share/elasticsearch/data"
+        env:
+          # Устанавливаем не кластерный режим работы
+          discovery.type: "single-node"
+          # Отключаем безопасность (только для учебных проектов!!!)
+          xpack.security.enabled: "false"
+          # Ограничиваем потребление памяти Java внутри контейнера (для 4ГБ RAM на VM)
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g" 

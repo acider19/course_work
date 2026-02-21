@@ -1,5 +1,5 @@
 ---
-- name: Install Prometheus on Monitor Host
+- name: Install Prometheus
   hosts: prometheus
   become: yes
   tasks:
