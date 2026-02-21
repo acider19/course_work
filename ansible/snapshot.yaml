@@ -1,0 +1,41 @@
+---
+- name: Setup Snapshot Schedule via YC CLI
+  hosts: localhost
+  vars:
+    sa_key_file: "{{ '~/.authorized_key.json' | expanduser }}"
+    folder_id: "b1g2ett5h4qn2kbsh6gr" 
+
+  tasks:
+    # 1. Авторизация (создаем временный профиль для работы Ansible)
+    - name: Create temporary YC profile for Ansible
+      shell: |
+        yc config profile create ansible-profile || yc config profile activate ansible-profile
+        yc config set service-account-key {{ sa_key_file }}
+        yc config set folder-id {{ folder_id }}
+
+    # 2. Создание расписания (Snapshot Schedule)
+    - name: Create daily snapshot schedule
+      shell: |
+        yc compute snapshot-schedule create daily-backup-schedule \
+        --expression "0 0 * * *" \
+        --retention-period 168h \
+        --description "Daily backup, 7 days retention"
+      register: schedule_out
+      failed_when: 
+        - schedule_out.rc != 0 
+        - "'already exists' not in schedule_out.stderr"
+
+    # 3. Получение списка ID всех дисков в каталоге
+    - name: Get all disk IDs
+      shell: "yc compute disk list --format json | jq -r '.[].id'"
+      register: disks
+
+    # 4. Привязка всех дисков к расписанию
+    - name: Attach disks to schedule
+      shell: "yc compute snapshot-schedule add-disks daily-backup-schedule --disk-id {{ item }}"
+      loop: "{{ disks.stdout_lines }}"
+      when: disks.stdout_lines | length > 0
+      register: attach_out
+      failed_when: 
+        - attach_out.rc != 0 
+        - "'already belongs' not in attach_out.stderr"

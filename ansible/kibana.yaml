@@ -29,3 +29,30 @@
           NODE_OPTIONS: "--max-old-space-size=2048"
           SERVER_HOST: "0.0.0.0"
           ELASTICSEARCH_HOSTS: "http://{{ hostvars['elasticsearch_server']['ansible_host'] }}:9200"
+
+    # Ожидание запуска Kibana
+    - name: Wait for Kibana to be ready
+      uri:
+        url: "http://localhost:5601/api/status"
+        method: GET
+        status_code: 200
+      register: _result
+      until: _result.status == 200
+      retries: 30
+      delay: 10
+
+    # Добавление паттерна индексов для логов nginx
+    - name: Create Filebeat Index Pattern (Data View)
+      uri:
+        url: "http://localhost:5601/api/data_views/data_view"
+        method: POST
+        body_format: json
+        headers:
+          kbn-xsrf: "true"
+        body:
+          data_view:
+            title: "filebeat-*"
+            name: "Nginx Logs (Filebeat)"
+            timeFieldName: "@timestamp"
+            id: "filebeat-logs"
+        status_code: [200, 409]
