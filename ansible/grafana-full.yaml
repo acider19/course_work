@@ -2,7 +2,7 @@
   hosts: grafana
   become: yes
   vars:
-    prometheus_ip: "{{ groups['prometheus'][0] }}"
+    prometheus_ip: "{{ hostvars['prometheus_server']['ansible_host'] }}"
     grafana_admin_password: "student"
     grafana_url: "http://localhost:3000"
 
@@ -20,6 +20,7 @@
         name: grafana
         image: grafana/grafana:latest
         state: started
+        recreate: yes
         restart_policy: always
         published_ports:
           - "3000:3000"
@@ -57,12 +58,32 @@
         suffix: dashboards
       register: temp_dir
 
+    # Скачиваем JSON дашборда 1860 во временную директорию
+    - name: Download dashboard JSONs
+      ansible.builtin.get_url:
+        url: "https://grafana.com/api/dashboards/1860/revisions/42/download"
+        dest: "{{ temp_dir.path }}/1860.json"
+        mode: '0644'
+
     # Скачиваем JSON дашборда 15947 во временную директорию
     - name: Download dashboard JSONs
       ansible.builtin.get_url:
         url: "https://grafana.com/api/dashboards/15947/revisions/1/download"
         dest: "{{ temp_dir.path }}/15947.json"
         mode: '0644'
+    
+    - name: Set thresholds (Safe way)
+      ansible.builtin.replace:
+        path: "{{ temp_dir.path }}/{{ item }}.json"
+        # Ищем именно массив steps и заменяем его содержимое
+        regexp: '"steps":\s*\[[^\]]*\]'
+        replace: >-
+          "steps": [
+            {"color": "green", "value": null},
+            {"color": "yellow", "value": 70},
+            {"color": "red", "value": 90}
+          ]
+      loop: ['15947', '1860']
 
     # Заменяем в JSON дашборда 15947 значение переменной Datasource uid (${DS_PROMETHEUS}) на значение uid Prometheus
     - name: Replace DS_PROMETHEUS variable with actual UID
@@ -71,26 +92,13 @@
         regexp: '\${DS_PROMETHEUS}'
         replace: "{{ ds_result.datasource.uid }}"
 
-    # Импортируем дашборд 15947 в Grafana из отредактированного JSON во ыременной директории
+    # Импортируем дашборды в Grafana
     - name: Import dashboards
       community.grafana.grafana_dashboard:
-        path: "{{ temp_dir.path }}/15947.json"
+        path: "{{ temp_dir.path }}/{{ item }}.json"
         url: "{{ grafana_url }}"
         url_username: "admin"
         url_password: "{{ grafana_admin_password }}"
         state: present
-        commit_message: "Updated by Ansible"
         overwrite: true
-
-
-    # Импортируем дашборд 1860 напрямую по ID без танцев с бубном
-    - name: Import standard dashboards
-      community.grafana.grafana_dashboard:
-        dashboard_id: 1860
-        dashboard_revision: 42
-        url: "{{ grafana_url }}"
-        url_username: "admin"
-        url_password: "{{ grafana_admin_password }}"
-        state: present
-        commit_message: "Updated by Ansible"
-        overwrite: true
+      loop: ['15947', '1860']
