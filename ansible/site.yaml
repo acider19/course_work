@@ -28,3 +28,7 @@
 - name: Install filebeat
   import_playbook: filebeat.yaml
   tags: filebeat
+
+- name: Create snapshot schedule
+  import_playbook: snapshot.yaml
+  tags: snapshot
