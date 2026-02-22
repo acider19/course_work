@@ -59,7 +59,6 @@ resource "yandex_alb_virtual_host" "cw-vhost" {
   }
 }
 
-
 resource "yandex_alb_load_balancer" "cw-lb" {
   name = "cw-lb"
 
@@ -75,18 +74,37 @@ resource "yandex_alb_load_balancer" "cw-lb" {
     }
   }
 
+  # СЛУШАТЕЛЬ ДЛЯ РЕДИРЕКТА (HTTP -> HTTPS)
   listener {
-    name = "cw-listener"
+    name = "http-listener"
     endpoint {
       address {
-        external_ipv4_address {
-        }
+        external_ipv4_address {}
       }
       ports = [80]
     }
     http {
       handler {
-        http_router_id = yandex_alb_http_router.cw-router.id
+        http_router_id = yandex_alb_http_router.cw-router.id # Тот же роутер
+      }
+    }
+  }
+
+ # СЛУШАТЕЛЬ ДЛЯ HTTPS (СЕРТИФИКАТ)
+  listener {
+    name = "https-listener"
+    endpoint {
+      address {
+        external_ipv4_address {}
+      }
+      ports = [443]
+    }
+    tls {
+      default_handler {
+        http_handler {
+          http_router_id = yandex_alb_http_router.cw-router.id
+        }
+        certificate_ids = ["fpq12ki098tkms0pdjh2"]
       }
     }
   }

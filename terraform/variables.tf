@@ -25,3 +25,17 @@ variable "comp_res_ext" {
     core_fraction = 20
   }
 }
+
+variable "noip_user" {
+  type      = string
+  sensitive = true
+}
+
+variable "noip_pass" {
+  type      = string
+  sensitive = true
+}
+
+variable "noip_host" {
+  type      = string
+}
