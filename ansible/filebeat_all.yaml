@@ -1,0 +1,57 @@
+---
+- name: Universal Filebeat Deployment
+  hosts: webservers, elasticsearch, kibana, grafana, prometheus
+  become: yes
+
+  tasks:
+    - name: Prepare Filebeat volumes
+      set_fact:
+        filebeat_volumes:
+          - "/etc/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro"
+          - "/var/run/docker.sock:/var/run/docker.sock:ro"
+          - "/var/lib/docker/containers:/var/lib/docker/containers:ro"
+
+    - name: Add Nginx volumes if needed
+      set_fact:
+        filebeat_volumes: "{{ filebeat_volumes + ['/var/log/nginx:/var/log/nginx:ro'] }}"
+      when: "'webservers' in group_names"
+
+    - name: Create Filebeat configuration
+      copy:
+        dest: /etc/filebeat.yml
+        mode: '0644'
+        # Теперь Jinja2 внутри content отработает корректно как текст
+        content: |
+          filebeat.inputs:
+          {% if 'webservers' in group_names %}
+          - type: log
+            enabled: true
+            paths:
+              - /var/log/nginx/access.log
+              - /var/log/nginx/error.log
+          {% endif %}
+
+          {% if 'elasticsearch' in group_names or 'kibana' in group_names or 'grafana' in group_names or 'prometheus' in group_names %}
+          - type: container
+            paths:
+              - /var/lib/docker/containers/*/*.log
+            processors:
+              - add_docker_metadata: ~
+          {% endif %}
+
+          output.elasticsearch:
+            hosts: ["{{ hostvars['elasticsearch_server']['ansible_host'] }}:9200"]
+            protocol: "http" 
+          
+          logging.level: info
+
+    - name: Run Filebeat container
+      community.docker.docker_container:
+        name: filebeat
+        image: docker.elastic.co/beats/filebeat:8.11.1
+        state: started
+        recreate: yes
+        restart_policy: always
+        user: root
+        volumes: "{{ filebeat_volumes }}"
+        command: ["filebeat", "-e", "--strict.perms=false"]

@@ -1,0 +1,91 @@
+---
+- name: Install Prometheus
+  hosts: prometheus
+  become: yes
+  vars:
+    cert_path: "/opt/prometheus/root.crt"
+  vars_files:
+    - ../terraform/ansible_vars.yaml
+  tasks:
+    - name: Install Docker and SDK
+      ansible.builtin.apt:
+        name: [docker.io, python3-docker]
+        state: present
+        update_cache: yes
+
+    - name: Create Prometheus Config Dir
+      ansible.builtin.file:
+        path: /opt/prometheus
+        state: directory
+
+    - name: Download Yandex Cloud Root CA
+      ansible.builtin.get_url:
+        url: "https://storage.yandexcloud.net/cloud-certs/CA.pem"
+        dest: "{{ cert_path }}"
+        mode: '0644'
+
+    - name: Install Go (needed to build adapter)
+      ansible.builtin.apt:
+        name: golang-go
+        state: present
+
+    - name: Clone and Build Postgres Prometheus Adapter
+      shell: |
+        git clone https://github.com/CrunchyData/postgresql-prometheus-adapter /tmp/adapter
+        cd /tmp/adapter
+        go mod tidy
+        go build -o /usr/local/bin/pg-prometheus-adapter
+      args:
+        creates: /usr/local/bin/pg-prometheus-adapter
+
+    - name: Create Systemd service for Adapter
+      copy:
+        dest: /etc/systemd/system/pg-adapter.service
+        content: |
+          [Unit]
+          Description=Postgres Prometheus Adapter
+          After=network.target
+
+          [Service]
+          Environment="DATABASE_URL=postgres://{{ db_user }}:{{ db_password }}@{{ db_host }}:6432/{{ db_name }}?sslmode=verify-full&sslrootcert={{ cert_path }}"
+          ExecStart=/usr/local/bin/pg-prometheus-adapter
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Start PG Adapter Service
+      systemd:
+        name: pg-adapter
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Create prometheus.yml
+      ansible.builtin.copy:
+        dest: /opt/prometheus/prometheus.yml
+        content: |
+          global:
+            scrape_interval: 15s
+          remote_write:
+            - url: "http://localhost:9201/write"
+          scrape_configs:
+            - job_name: 'prometheus'
+              static_configs:
+                - targets: ['localhost:9090']
+            - job_name: 'web_nodes'
+              static_configs:
+                # Prometheus будет забирать метрики с экспортеров на веб-серверах
+                - targets: {{ groups['webservers'] | map('regex_replace', '$', ':9100') | list + groups['webservers'] | map('regex_replace', '$', ':4040') | list }}
+        mode: '0644'
+
+    - name: Run Prometheus Container
+      community.docker.docker_container:
+        name: prometheus
+        image: prom/prometheus:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "9090:9090"
+        volumes:
+          - /opt/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml

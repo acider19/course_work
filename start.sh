@@ -15,7 +15,7 @@ if [ -f "$HOME/.ssh/known_hosts" ]; then
     echo "🧹 Файл known_hosts очищен."
 fi
 
-echo "--- [2/3] Запуск Terraform Apply (ожидание 5-7 мин) ---"
+echo "--- [2/3] Запуск Terraform Apply (ожидание 7-10 мин) ---"
 cd "$TF_DIR"
 # Выполняем apply
 terraform apply -auto-approve

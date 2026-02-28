@@ -1,11 +1,11 @@
 variable "cloud_id" {
   type    = string
-  default = "b1g68t7p4rjq035vq0o9"
+  sensitive = true
 }
 
 variable "folder_id" {
   type    = string
-  default = "b1g2ett5h4qn2kbsh6gr"
+  sensitive = true
 }
 
 variable "comp_res" {
@@ -38,4 +38,14 @@ variable "noip_pass" {
 
 variable "noip_host" {
   type      = string
+}
+
+variable "pg_user" {
+  type        = string
+  sensitive   = true
+}
+
+variable "pg_password" {
+  type        = string
+  sensitive   = true
 }
