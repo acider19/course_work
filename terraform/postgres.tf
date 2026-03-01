@@ -1,3 +1,4 @@
+# создание кластера PostreSQL в Managed Service for PostgreSQL
 resource "yandex_mdb_postgresql_cluster" "cw-pg" {
   name        = "prom-storage"
   environment = "PRESTABLE"
@@ -23,20 +24,21 @@ resource "yandex_mdb_postgresql_cluster" "cw-pg" {
   }
 }
 
-# Добавляем саму базу данных
+# создание самой базы данных
 resource "yandex_mdb_postgresql_database" "prometheus_db" {
   cluster_id = yandex_mdb_postgresql_cluster.cw-pg.id
-  name       = "prometheus"      # Это имя вы укажете в переменной db_name для Ansible
+  name       = "prometheus"      # имя для переменной db_name для Ansible
   owner      = yandex_mdb_postgresql_user.admin.name
 }
 
+# создание пользователя admin для кластера PostreSQL
 resource "yandex_mdb_postgresql_user" "admin" {
-  cluster_id = yandex_mdb_postgresql_cluster.cw-pg.id # Исправлено на актуальное имя ресурса
+  cluster_id = yandex_mdb_postgresql_cluster.cw-pg.id
   name       = var.pg_user
   password   = var.pg_password
 }
 
-# Ресурс, который создает файл для Ansible
+# ресурс, который создает файл для Ansible
 resource "local_file" "ansible_vars" {
   filename = "${path.module}/ansible_vars.yaml"
   content  = <<-EOT

@@ -255,7 +255,7 @@ resource "yandex_compute_instance" "elasticsearch" {
   }
 }
 
-# место для доп виртуалок
+# формирование файла hosts.ini
 
 resource "local_file" "inventory" {
   content  = <<-XYZ

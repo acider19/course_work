@@ -1,3 +1,4 @@
+# создание таргет группы и добавление туда ВМ с вебсерверами
 resource "yandex_alb_target_group" "target-group-web" {
   name           = "web-servers"
 
@@ -13,6 +14,7 @@ resource "yandex_alb_target_group" "target-group-web" {
 
 }
 
+# создание бэкэнд группы определяющей, что трафик пойдет на 80 порт вебсерверов из соответствующей таргет группы
 resource "yandex_alb_backend_group" "backend-group-web" {
   name                     = "web-servers"
   http_backend {
@@ -36,10 +38,12 @@ resource "yandex_alb_backend_group" "backend-group-web" {
   }
 }
 
+# http роутер
 resource "yandex_alb_http_router" "cw-router" {
   name = "cw-router"
 }
 
+# аналог блока server в Nginx или виртуального хоста в Apache
 resource "yandex_alb_virtual_host" "cw-vhost" {
   name           = "cw-virtual-host"
   http_router_id = yandex_alb_http_router.cw-router.id
@@ -59,6 +63,7 @@ resource "yandex_alb_virtual_host" "cw-vhost" {
   }
 }
 
+# точка входа для приема внешнего трафика, принимает http и https, при этом расшифровывая его, отправляет на http-роутер
 resource "yandex_alb_load_balancer" "cw-lb" {
   name = "cw-lb"
 
@@ -74,7 +79,7 @@ resource "yandex_alb_load_balancer" "cw-lb" {
     }
   }
 
-  # СЛУШАТЕЛЬ ДЛЯ РЕДИРЕКТА (HTTP -> HTTPS)
+  # слушатель для редиректа (HTTP -> HTTPS)
   listener {
     name = "http-listener"
     endpoint {
@@ -90,7 +95,7 @@ resource "yandex_alb_load_balancer" "cw-lb" {
     }
   }
 
- # СЛУШАТЕЛЬ ДЛЯ HTTPS (СЕРТИФИКАТ)
+ # слушатель для HTTPS (СЕРТИФИКАТ)
   listener {
     name = "https-listener"
     endpoint {

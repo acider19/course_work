@@ -38,8 +38,9 @@ resource "yandex_vpc_route_table" "cw_rt" {
   }
 }
 
-#создаем группы безопасности(firewall)
+# создаем группы безопасности(firewall)
 
+# группа безопасности для джампсервера bastion
 resource "yandex_vpc_security_group" "bastion_sg" {
   name       = "bastion-sg"
   network_id = yandex_vpc_network.cw.id
@@ -58,6 +59,7 @@ resource "yandex_vpc_security_group" "bastion_sg" {
   }
 }
 
+# группа безопасности для внутренней сети (LAN)
 resource "yandex_vpc_security_group" "LAN" {
   name       = "LAN-sg"
   network_id = yandex_vpc_network.cw.id
@@ -77,6 +79,7 @@ resource "yandex_vpc_security_group" "LAN" {
   }
 }
 
+# группа безопасности для веб серверов
 resource "yandex_vpc_security_group" "web_sg" {
   name       = "web-sg"
   network_id = yandex_vpc_network.cw.id
@@ -96,6 +99,7 @@ resource "yandex_vpc_security_group" "web_sg" {
   }
 }
 
+# группа безопасности для сервера grafana
 resource "yandex_vpc_security_group" "grafana_sg" {
   name       = "grafana-sg"
   network_id = yandex_vpc_network.cw.id
@@ -114,6 +118,7 @@ resource "yandex_vpc_security_group" "grafana_sg" {
   }
 }
 
+# группа безопасности для сервера kibana
 resource "yandex_vpc_security_group" "kibana_sg" {
   name       = "kibana-sg"
   network_id = yandex_vpc_network.cw.id

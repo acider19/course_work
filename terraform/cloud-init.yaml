@@ -6,5 +6,4 @@ users:
     sudo: ["ALL=(ALL) NOPASSWD:ALL"]
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN8tUE4m5pdEwYhV8VRUJdQjvjkvydoJ20cgvkOGeLCM master@JunkMacBook-Air-M3.local
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICCy0fYsPMMhdG7yTrLLpVcQGnTHgKyALhwp6D5nqaY/ junk@Ubuntu-for-Docker
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJZWG4nklCvirg4JUO+YidmgM7HzOQhfPNUSP1XifiuQ master@JunkMacBook-Pro.local
