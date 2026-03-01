@@ -11,6 +11,6 @@ resource "null_resource" "update_noip" {
 }
 
 # Чтобы сразу видеть результат в консоли после apply
-output "noip_status" {
-  value = "Domain ${var.noip_host} updated to ${yandex_alb_load_balancer.cw-lb.listener[0].endpoint[0].address[0].external_ipv4_address[0].address}"
-}
+# output "noip_status" {
+#   value = "Domain ${var.noip_host} updated to ${yandex_alb_load_balancer.cw-lb.listener[0].endpoint[0].address[0].external_ipv4_address[0].address}"
+# }
