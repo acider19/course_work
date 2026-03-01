@@ -1,9 +1,12 @@
+# создание сервиса сборщика логов filebeat на всех ВМ проекта
 ---
 - name: Universal Filebeat Deployment
   hosts: webservers, elasticsearch, kibana, grafana, prometheus
   become: yes
 
   tasks:
+
+    # создание Docker вольюмов для filebeat на всех ВМ кроме вебсерверов
     - name: Prepare Filebeat volumes
       set_fact:
         filebeat_volumes:
@@ -11,16 +14,17 @@
           - "/var/run/docker.sock:/var/run/docker.sock:ro"
           - "/var/lib/docker/containers:/var/lib/docker/containers:ro"
 
+    # создание Docker вольюмов для filebeat на ВМ вебсерверов
     - name: Add Nginx volumes if needed
       set_fact:
         filebeat_volumes: "{{ filebeat_volumes + ['/var/log/nginx:/var/log/nginx:ro'] }}"
       when: "'webservers' in group_names"
 
+    # создание конфигурационных файлов в зависимости от того, на какой ВМ запускается filebeat
     - name: Create Filebeat configuration
       copy:
         dest: /etc/filebeat.yml
         mode: '0644'
-        # Теперь Jinja2 внутри content отработает корректно как текст
         content: |
           filebeat.inputs:
           {% if 'webservers' in group_names %}
@@ -45,6 +49,7 @@
           
           logging.level: info
 
+    # запуск filebeat в Docker
     - name: Run Filebeat container
       community.docker.docker_container:
         name: filebeat

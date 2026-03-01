@@ -1,3 +1,4 @@
+# создание сервиса для поиска и хранения логов Elasticsearch
 ---
 - name: Install Elasticsearch
   hosts: elasticsearch

@@ -6,13 +6,22 @@
 
 Файлы и директории выложенные в публичный (удаленный) репозиторий:
 
-- файл [site.yaml](../ansible/site.yaml) являющийся мастер-плейбуком, содержащим последовательность запуска файлов с плейбуками для отдельных сервисов, также содержит теги, предполагающие возможность гибкого запуска конкретных плейбуков
-- файл [es.yaml](../ansible/es.yaml)
-- файл [exporters.yaml](../ansible/exporters.yaml)
-- файл [filebeat_all.yaml](../ansible/filebeat_all.yaml)
-- файл [filebeat.yaml](../ansible/filebeat.yaml)
-- файл [grafana-full.yaml](../ansible/grafana-full.yaml)
-- файл [kibana.yaml](../ansible/kibana.yaml)
-- файл [nginx.yaml](../ansible/nginx.yaml)
-- файл [prom.yaml](../ansible/prom.yaml)
-- файл [snapshot.yaml](../ansible/snapshot.yaml)
+- мастер-плейбук [site.yaml](../ansible/site.yaml) содержащий последовательность запуска плейбуков для отдельных сервисов, также содержит теги, предполагающие возможность гибкого запуска конкретных плейбуков
+
+- плейбук [es.yaml](../ansible/es.yaml) для запуска сервиса Elasticsearch, осуществляющего хранение и поиск логов
+
+- плейбук [exporters.yaml](../ansible/exporters.yaml) для установки сборщиков метрик node exporter и nginx log exporter на вебсерверы
+
+- плейбук [filebeat_all.yaml](../ansible/filebeat_all.yaml) обеспечивающий запуск сборщика логов filebeat на всех ВМ проекта
+
+- плейбук [filebeat.yaml](../ansible/filebeat.yaml) обеспечивающий запуск сборщика логов filebeat на вебсерверах (не используется, но может быть использован вместо filebeat_all.yaml)
+
+- плейбук [grafana-full.yaml](../ansible/grafana-full.yaml) запускающий сервис для визуального мониторинга метрик Grafana
+
+- плейбук [kibana.yaml](../ansible/kibana.yaml) обеспечивающий создание сервиса отображения логов Kibana
+
+- плейбук [nginx.yaml](../ansible/nginx.yaml) устанавливающий nginx на вебсерверы и формирующий простейшую веб-страницу
+
+- плейбук [prom.yaml](../ansible/prom.yaml) запускающий сервис Prometheus, также здесь собирается из исходников и запускается pg-prometheus-adapter для обеспечения возможности записи данных в БД PostgreSQL
+
+- плейбук [snapshot.yaml](../ansible/snapshot.yaml) реализующий функцию резервного копирования

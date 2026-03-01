@@ -1,16 +1,18 @@
+# установка node exporter и nginx log exporter на вебсервера
 - name: Install Exporters on Web Servers
   hosts: webservers
   become: yes
 
   tasks:
 
+    # установка Docker
     - name: Install Docker and SDK
       ansible.builtin.apt:
         name: [docker.io, python3-docker]
         state: present
         update_cache: yes
 
-    # Node Exporter (Порт 9100)
+    # запуск Node Exporter (Порт 9100)
     - name: Run Node Exporter
       community.docker.docker_container:
         name: node-exporter
@@ -19,8 +21,7 @@
         restart_policy: always
         published_ports: ["9100:9100"]
 
-    # Nginx Log Exporter (Порт 4040)
-    # Внимание: требует наличия доступа к логам nginx на хосте
+    # запуск Nginx Log Exporter (Порт 4040) (требует наличия доступа к логам nginx на хост
     - name: Run Nginx Log Exporter
       community.docker.docker_container:
         name: nginx-log-exporter

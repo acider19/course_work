@@ -1,3 +1,4 @@
+# запуск сервиса для визуального мониторинга метрик Grafana
 - name: Install and Configure Grafana via API
   hosts: grafana
   become: yes

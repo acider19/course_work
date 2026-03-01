@@ -1,3 +1,4 @@
+# создание сервиса сбора метрик для мониторинга Prometheus и установка адаптера для возможности записи данных в базу данных PostgreSQL
 ---
 - name: Install Prometheus
   hosts: prometheus
@@ -7,28 +8,34 @@
   vars_files:
     - ../terraform/ansible_vars.yaml
   tasks:
+
+    # установка Docker
     - name: Install Docker and SDK
       ansible.builtin.apt:
         name: [docker.io, python3-docker]
         state: present
         update_cache: yes
 
+    # создание директории для конфига Prometheus
     - name: Create Prometheus Config Dir
       ansible.builtin.file:
         path: /opt/prometheus
         state: directory
 
+    # скачивание корневого сертификата
     - name: Download Yandex Cloud Root CA
       ansible.builtin.get_url:
         url: "https://storage.yandexcloud.net/cloud-certs/CA.pem"
         dest: "{{ cert_path }}"
         mode: '0644'
 
+    # установка компилятора Go
     - name: Install Go (needed to build adapter)
       ansible.builtin.apt:
         name: golang-go
         state: present
 
+    # клонирование репозитория с кодом pg-prometheus-adapter и сборка в исполняемый файл
     - name: Clone and Build Postgres Prometheus Adapter
       shell: |
         git clone https://github.com/CrunchyData/postgresql-prometheus-adapter /tmp/adapter
@@ -38,6 +45,8 @@
       args:
         creates: /usr/local/bin/pg-prometheus-adapter
 
+    # создание systemd сервиса для pg-prometheus-adapter с указанием данных для подключения к БД
+    # данные для подключения получаются из файла ansible_vars.yaml, сформированного в результате работы postgres.tf
     - name: Create Systemd service for Adapter
       copy:
         dest: /etc/systemd/system/pg-adapter.service
@@ -54,6 +63,7 @@
           [Install]
           WantedBy=multi-user.target
 
+    # запуск systemd сервиса для pg-prometheus-adapter
     - name: Start PG Adapter Service
       systemd:
         name: pg-adapter
@@ -61,6 +71,7 @@
         enabled: yes
         daemon_reload: yes
 
+    # создание конфигурационного файла для Prometheus
     - name: Create prometheus.yml
       ansible.builtin.copy:
         dest: /opt/prometheus/prometheus.yml
@@ -79,6 +90,7 @@
                 - targets: {{ groups['webservers'] | map('regex_replace', '$', ':9100') | list + groups['webservers'] | map('regex_replace', '$', ':4040') | list }}
         mode: '0644'
 
+    # запуск Prometheus в Docker
     - name: Run Prometheus Container
       community.docker.docker_container:
         name: prometheus

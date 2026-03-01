@@ -1,3 +1,4 @@
+# установка и запуск nginx на ВМ web-a и web-b
 ---
 - name: Install nginx on webservers
   gather_facts: false
@@ -7,12 +8,15 @@
   become: yes
 
   tasks:
+
+  # установка apt-пакета nginx
   - name: "Install nginx via apt"
     ansible.builtin.apt:
       name: "nginx"
       state: "latest"
       update_cache: true
 
+  # создание простейшей web-страницы
   - name: "Deploy index.html"
     ansible.builtin.copy:
       content: |
@@ -32,16 +36,19 @@
       mode: '0644'
       backup: yes
 
+  # удаление дефолтной web-страницы nginx
   - name: "Remove default nginx page"
     ansible.builtin.file:
       path: /var/www/html/index.nginx-debian.html
       state: absent      
 
+  # запуск systemd-сервиса nginx
   - name: "Start a nginx with systemd"
     systemd:
       name: "nginx"
       state: started
 
+  # включение systemd-сервиса nginx в автозагрузку
   - name: "Enable nginx service"
     systemd:
       name: "nginx.service"

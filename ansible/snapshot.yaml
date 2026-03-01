@@ -1,3 +1,4 @@
+# создание резервного копирования дисков ВМ по расписанию, с ретеншеном семь дней
 ---
 - name: Setup Snapshot Schedule via YC CLI
   hosts: localhost
