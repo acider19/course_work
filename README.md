@@ -35,7 +35,7 @@
 
 [Main page (domain name https)](https://fops41.freedynamicdns.net)
 
-[Grafana](http://62.84.120.165:3000)
+[Grafana](http://62.84.120.165:3000) viewer 1q2w3e
 
 [Kibana](http://158.160.1.33:5601)
 
