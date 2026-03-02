@@ -39,4 +39,4 @@
 
 [Kibana](http://158.160.1.33:5601)
 
-[bastion](ssh://student@93.77.185.229:22)
+bastion ssh://student@93.77.185.229:22
