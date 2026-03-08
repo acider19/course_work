@@ -1,5 +1,0 @@
-# Сгенерировано Terraform. Не править вручную!
-db_host: "rc1a-k6l9eh0atqn4ep6c.mdb.yandexcloud.net"
-db_name: "prometheus"
-db_user: "prom_admin"
-db_password: "student41"
