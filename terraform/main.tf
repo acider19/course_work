@@ -28,7 +28,7 @@ module "web_a" {
 module "web_b" {
   source             = "./modules/instance"
   instance_name      = "web-b"
-  instance_hostname  = "web-a"
+  instance_hostname  = "web-b"
   zone               = "ru-central1-b"
   subnet_id          = module.vpc.subnet_ids["b"]
   security_group_ids = [module.vpc.security_group_ids["web"], module.vpc.security_group_ids["lan"]]
@@ -40,7 +40,7 @@ module "prometheus" {
   source             = "./modules/instance"
   instance_name      = "prometheus"
   instance_hostname  = "prometheus"
-  zone               = "ru-central1-a"
+  zone               = "ru-central1-b"
   subnet_id          = module.vpc.subnet_ids["b"]
   security_group_ids = [module.vpc.security_group_ids["lan"]]
   ssh_keys           = var.vm_ssh_keys
@@ -81,7 +81,7 @@ module "elasticsearch" {
   ram                = "4"
   instance_name      = "elasticsearch"
   instance_hostname  = "elasticsearch"
-  zone               = "ru-central1-a"
+  zone               = "ru-central1-b"
   subnet_id          = module.vpc.subnet_ids["b"]
   nat                = true
   security_group_ids = [module.vpc.security_group_ids["lan"]]

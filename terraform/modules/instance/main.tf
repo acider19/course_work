@@ -1,3 +1,8 @@
+#считываем данные об образе ОС
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
+}
+
 resource "yandex_compute_instance" "this" {
   name        = var.instance_name
   hostname    = var.instance_hostname
@@ -12,7 +17,7 @@ resource "yandex_compute_instance" "this" {
 
   boot_disk {
     initialize_params {
-      image_id = var.image_id
+      image_id = data.yandex_compute_image.ubuntu.id
       type     = "network-hdd"
       size     = var.disk_size
     }

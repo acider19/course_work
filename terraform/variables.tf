@@ -69,3 +69,8 @@ variable "vm_username" {
 variable "vm_ssh_keys" {
   type = list(string)
 }
+
+variable "certificate_id" {
+  type        = string
+  description = "ID сертификата из Certificate Manager"
+}
