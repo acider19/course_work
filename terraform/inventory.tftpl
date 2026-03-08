@@ -1,0 +1,23 @@
+[bastion]
+bastion_host ansible_host=${bastion_ip}
+
+[webservers]
+%{ for name, ip in web_servers ~}
+${name} ansible_host=${ip}
+%{ endfor ~}
+
+[prometheus]
+prometheus_server ansible_host=${prometheus_ip}
+
+[grafana]
+grafana_server ansible_host=${grafana_ip}
+
+[elasticsearch]
+elasticsearch_server ansible_host=${elastic_ip}
+
+[kibana]
+kibana_server ansible_host=${kibana_ip} external_ip=${kibana_nat_ip}
+
+[all:vars]
+ansible_user=${username}
+ansible_ssh_common_args='-o ProxyCommand="ssh -p 22 -W %h:%p -q ${username}@${bastion_ip}"'

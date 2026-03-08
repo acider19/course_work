@@ -1,12 +1,12 @@
 # идентификатор облака в Yandex Cloud
 variable "cloud_id" {
-  type    = string
+  type      = string
   sensitive = true
 }
 
 # идентификатор каталога в облаке в Yandex Cloud
 variable "folder_id" {
-  type    = string
+  type      = string
   sensitive = true
 }
 
@@ -44,17 +44,28 @@ variable "noip_pass" {
 
 # домен, зарегистрированный в сервисе NoIp
 variable "noip_host" {
-  type      = string
+  type = string
 }
 
 # пользователь для доступа к Managed Service for PostgreSQL
 variable "pg_user" {
-  type        = string
-  sensitive   = true
+  type      = string
+  sensitive = true
 }
 
 # пароль для доступа к Managed Service for PostgreSQL
 variable "pg_password" {
-  type        = string
-  sensitive   = true
+  type      = string
+  sensitive = true
+}
+
+# ssh пользователь ВМ
+variable "vm_username" {
+  type    = string
+  default = "student"
+}
+
+# публичные ключи для ssh доступа к ВМ
+variable "vm_ssh_keys" {
+  type = list(string)
 }

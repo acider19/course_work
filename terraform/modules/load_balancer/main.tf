@@ -1,38 +1,34 @@
-# создание таргет группы и добавление туда ВМ с вебсерверами
 resource "yandex_alb_target_group" "target-group-web" {
-  name           = "web-servers"
+  name = "web-servers"
 
-  target {
-    subnet_id    = yandex_vpc_subnet.cw_a.id
-    ip_address   = yandex_compute_instance.web_a.network_interface.0.ip_address
+  dynamic "target" {
+    for_each = var.web_server_ips
+    content {
+      subnet_id  = target.value.subnet_id
+      ip_address = target.value.ip_address
+    }
   }
-
-  target {
-    subnet_id    = yandex_vpc_subnet.cw_b.id
-    ip_address   = yandex_compute_instance.web_b.network_interface.0.ip_address
-  }
-
 }
 
 # создание бэкэнд группы определяющей, что трафик пойдет на 80 порт вебсерверов из соответствующей таргет группы
 resource "yandex_alb_backend_group" "backend-group-web" {
-  name                     = "web-servers"
+  name = "web-servers"
   http_backend {
-    name                   = "web-servers"
-    weight                 = 1
-    port                   = 80
-    target_group_ids       = [yandex_alb_target_group.target-group-web.id]
+    name             = "web-servers"
+    weight           = 1
+    port             = 80
+    target_group_ids = [yandex_alb_target_group.target-group-web.id]
     load_balancing_config {
-      panic_threshold      = 50
+      panic_threshold = 50
     }
     healthcheck {
-      timeout              = "1s"
-      interval             = "2s"
-      healthy_threshold    = 2
-      unhealthy_threshold  = 5
-      healthcheck_port     = 80
+      timeout             = "1s"
+      interval            = "2s"
+      healthy_threshold   = 2
+      unhealthy_threshold = 5
+      healthcheck_port    = 80
       http_healthcheck {
-        path              = "/"
+        path = "/"
       }
     }
   }
@@ -67,15 +63,15 @@ resource "yandex_alb_virtual_host" "cw-vhost" {
 resource "yandex_alb_load_balancer" "cw-lb" {
   name = "cw-lb"
 
-  network_id = yandex_vpc_network.cw.id
+  network_id = var.network_id
   allocation_policy {
     location {
       zone_id   = "ru-central1-a"
-      subnet_id = yandex_vpc_subnet.cw_a.id
+      subnet_id = var.subnet_a_id
     }
     location {
       zone_id   = "ru-central1-b"
-      subnet_id = yandex_vpc_subnet.cw_b.id
+      subnet_id = var.subnet_b_id
     }
   }
 
@@ -95,7 +91,7 @@ resource "yandex_alb_load_balancer" "cw-lb" {
     }
   }
 
- # слушатель для HTTPS (СЕРТИФИКАТ)
+  # слушатель для HTTPS (СЕРТИФИКАТ)
   listener {
     name = "https-listener"
     endpoint {
@@ -109,7 +105,7 @@ resource "yandex_alb_load_balancer" "cw-lb" {
         http_handler {
           http_router_id = yandex_alb_http_router.cw-router.id
         }
-        certificate_ids = ["fpq12ki098tkms0pdjh2"]
+        certificate_ids = [var.cert_id]
       }
     }
   }
