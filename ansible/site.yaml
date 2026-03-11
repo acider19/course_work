@@ -1,34 +1,13 @@
----
 # Мастер-плейбук
+---
+- name: Base configuration for all nodes
+  hosts: all
+  become: true
+  roles:
+    - common
 
-- name: Install webservers
-  import_playbook: nginx.yaml
-  tags: nginx
-
-- name: Install node and nginx exporters
-  import_playbook: exporters.yaml
-  tags: exporter
-
-- name: Install prometheus
-  import_playbook: prom.yaml
-  tags: prometheus
-
-- name: Install grafana
-  import_playbook: grafana-full.yaml
-  tags: grafana
-
-- name: Install elasticsearch
-  import_playbook: es.yaml
-  tags: elasticsearch
-
-- name: Install kibana
-  import_playbook: kibana.yaml
-  tags: kibana
-
-- name: Install filebeat
-  import_playbook: filebeat_all.yaml
-  tags: filebeat
-
-- name: Create snapshot schedule
-  import_playbook: snapshot.yaml
-  tags: snapshot
+- name: Configure Web Servers
+  hosts: webservers
+  become: true
+  roles:
+    - nginx

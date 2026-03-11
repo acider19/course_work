@@ -1,0 +1,51 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+# Установка необходимых базовых пакетов
+- name: Install essential packages
+  ansible.builtin.apt:
+    name:
+      - htop
+      - iotop
+      - curl
+      - ncdu
+      - iputils-ping
+      - net-tools
+    state: present
+
+# Проверка наличия пользователя, созданного терраформом, и рутовых прав у него
+- name: Ensure student user exists and has sudo
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: sudo
+    shell: /bin/bash
+    append: yes
+
+# Установка часового пояса
+- name: Set timezone to Europe/Moscow
+  community.general.timezone:
+    name: Europe/Moscow
+
+# Установка Docker
+- name: Install Docker and SDK
+  ansible.builtin.apt:
+    name: [docker.io, python3-docker]
+    state: present
+    update_cache: yes
+
+# Проверка установки Docker
+- name: Ensure Docker is started and enabled
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+# Добавление пользователя в группу docker
+- name: Add student user to docker group
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes

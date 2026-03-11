@@ -1,0 +1,49 @@
+# установка apt-пакета nginx
+- name: "Install nginx via apt"
+  ansible.builtin.apt:
+    name: "nginx"
+    state: "latest"
+    update_cache: true
+
+# удаление дефолтной web-страницы nginx
+- name: "Remove default nginx page"
+  ansible.builtin.file:
+    path: /var/www/html/index.nginx-debian.html
+    state: absent      
+
+# создание виртуального хоста
+- name: Configure Nginx virtual host
+  ansible.builtin.template:
+    src: default.conf.j2
+    dest: /etc/nginx/sites-available/default
+    mode: '0644'
+  notify: reload nginx
+
+# создание index.html из шаблона
+- name: "Deploy index.html from template"
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: /var/www/html/index.html
+    owner: www-data
+    group: www-data
+    mode: '0644'
+  notify: reload nginx
+
+# запуск systemd-сервиса nginx
+- name: "Start a nginx with systemd"
+  ansible.builtin.systemd:
+    name: "nginx"
+    state: started
+
+# включение systemd-сервиса nginx в автозагрузку
+- name: "Enable nginx service"
+  ansible.builtin.systemd:
+    name: "nginx.service"
+    enabled: true
+
+# проверка nginx включен и в автозагрузке
+- name: Ensure Nginx is started and enabled
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: yes

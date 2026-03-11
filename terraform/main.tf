@@ -102,7 +102,7 @@ module "postgresql" {
 # создание inventory (hosts.ini) для ansible
 resource "local_file" "inventory" {
   filename = "${path.module}/../ansible/hosts.ini"
-  content = templatefile("${path.module}/inventory.tftpl", {
+  content = templatefile("${path.module}/templates/inventory.tftpl", {
     # Передаем все нужные данные в шаблон
     username      = var.vm_username
     bastion_ip    = module.bastion.external_ip
@@ -124,7 +124,7 @@ resource "local_file" "inventory" {
 resource "local_file" "db_vars" {
   # Путь относительно папки terraform в папку ansible
   filename = "${path.module}/../ansible/group_vars/all/db_vars.yml"
-  content = templatefile("${path.module}/db_vars.tftpl", {
+  content = templatefile("${path.module}/templates/db_vars.tftpl", {
     db_host     = module.postgresql.db_fqdn
     db_name     = module.postgresql.db_name
     db_user     = var.pg_user
